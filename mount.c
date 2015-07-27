@@ -16,6 +16,7 @@
 #include <glob.h>
 #include <libgen.h>
 #include <poll.h>
+#include <dirent.h>
 
 #include "include/log.h"
 #include "include/list.h"
@@ -25,6 +26,7 @@
 #include "include/autofs.h"
 #include "include/ucix.h"
 #include "include/fs.h"
+#include "include/mount.h"
 
 int mount_new(char *path, char *dev);
 
@@ -53,7 +55,10 @@ char *fs_names[] = {
 	"EXT3",
 	"FAT",
 	"HFSPLUS",
-	"NTFS"
+	"",
+	"NTFS",
+	"",
+	"EXT4"
 };
 
 #define MAX_MOUNTED		32
@@ -63,7 +68,7 @@ char mounted[MAX_MOUNTED][3][MAX_MOUNT_NAME];
 int mounted_count = 0;
 extern char uci_path[32];
 
-void mount_dump_uci_state(void)
+static void mount_dump_uci_state(void)
 {
 	struct uci_context *ctx;
 	struct list_head *p;
@@ -93,7 +98,7 @@ void mount_dump_uci_state(void)
 		ucix_add_option(ctx, mountd, q->serial, "rev", q->rev);
 		snprintf(t, 64, "size%d", atoi(&q->dev[3]));
 		ucix_add_option(ctx, mountd, q->serial, t, q->size);
-		if(q->fs > MBR && q->fs <= NTFS)
+		if(q->fs > MBR && q->fs <= EXT4)
 		{
 			snprintf(t, 64, "fs%d", atoi(&q->dev[3]));
 			ucix_add_option(ctx, mountd, q->serial, t, fs_names[q->fs]);
@@ -110,7 +115,7 @@ void mount_dump_uci_state(void)
 	ucix_cleanup(ctx);
 }
 
-struct mount* mount_find(char *name, char *dev)
+static struct mount* mount_find(char *name, char *dev)
 {
 	struct list_head *p;
 	list_for_each(p, &mounts)
@@ -126,12 +131,12 @@ struct mount* mount_find(char *name, char *dev)
 	return 0;
 }
 
-void mount_add_list(char *name, char *dev, char *serial,
+static void mount_add_list(char *name, char *dev, char *serial,
 	char *vendor, char *model, char *rev, int ignore, char *size, char *sector_size, int fs)
 {
 	struct mount *mount;
 	char tmp[64], tmp2[64];
-	if(fs <= MBR || fs > NTFS)
+	if(fs <= MBR || fs > EXT4)
 		return;
 	mount  = malloc(sizeof(struct mount));
 	INIT_LIST_HEAD(&mount->list);
@@ -147,7 +152,7 @@ void mount_add_list(char *name, char *dev, char *serial,
 	mount->mounted = 0;
 	mount->fs = fs;
 	list_add(&mount->list, &mounts);
-	if((!mount->ignore) && (mount->fs > MBR) && (mount->fs <= NTFS))
+	if((!mount->ignore) && (mount->fs > MBR) && (mount->fs <= EXT4))
 	{
 		log_printf("new mount : %s -> %s (%s)\n", name, dev, fs_names[mount->fs]);
 		snprintf(tmp, 64, "%s%s", uci_path, name);
@@ -157,7 +162,7 @@ void mount_add_list(char *name, char *dev, char *serial,
 	}
 }
 
-int mount_check_disc(char *disc)
+static int mount_check_disc(char *disc)
 {
 	FILE *fp = fopen("/proc/mounts", "r");
 	char tmp[256];
@@ -187,7 +192,7 @@ int mount_check_disc(char *disc)
 	return avail;
 }
 
-int mount_wait_for_disc(char *disc)
+static int mount_wait_for_disc(char *disc)
 {
 	int i = 10;
 	while(i--)
@@ -225,6 +230,11 @@ int mount_new(char *path, char *dev)
 		{
 			log_printf("mount -t vfat -o rw,uid=1000,gid=1000 /dev/%s %s", mount->dev, tmp);
 			ret = system_printf("mount -t vfat -o rw,uid=1000,gid=1000 /dev/%s %s", mount->dev, tmp);
+		}
+		if(mount->fs == EXT4)
+		{
+			log_printf("mount -t ext4 -o rw,defaults /dev/%s %s", mount->dev, tmp);
+			ret = system_printf("mount -t ext4 -o rw,defaults /dev/%s %s", mount->dev, tmp);
 		}
 		if(mount->fs == EXT3)
 		{
@@ -280,19 +290,19 @@ int mount_remove(char *path, char *dev)
 	return 0;
 }
 
-int dir_sort(const void *a, const void *b)
+static int dir_sort(const struct dirent **a, const struct dirent **b)
 {
 	return 0;
 }
 
-int dir_filter(const struct dirent *a)
+static int dir_filter(const struct dirent *a)
 {
 	if(strstr(a->d_name, ":"))
 		return 1;
 	return 0;
 }
 
-char* mount_get_serial(char *dev)
+static char* mount_get_serial(char *dev)
 {
 	static char tmp[64];
 	static char tmp2[64];
@@ -371,6 +381,7 @@ char* mount_get_serial(char *dev)
 	} else {
 		/* serial string id is cheap, but makes the discs anonymous */
 		unsigned char uniq[6];
+		unsigned int *u = (unsigned int*) uniq;
 		int l = strlen(serial);
 		int i;
 		static char disc_id[13];
@@ -380,14 +391,14 @@ char* mount_get_serial(char *dev)
 		{
 			uniq[i%6] += serial[i];
 		}
-		sprintf(disc_id, "%08X%02X%02X", *((unsigned int*)&uniq[0]), uniq[4], uniq[5]);
+		sprintf(disc_id, "%08X%02X%02X", *u, uniq[4], uniq[5]);
 		//log_printf("Serial number - %s %s\n", serial, disc_id);
 		return disc_id;
 	}
 	return 0;
 }
 
-void mount_dev_add(char *dev)
+static void mount_dev_add(char *dev)
 {
 	struct mount *mount = mount_find(0, dev);
 	if(!mount)
@@ -506,7 +517,7 @@ void mount_dev_add(char *dev)
 	}
 }
 
-void mount_dev_del(char *dev)
+static void mount_dev_del(char *dev)
 {
 	struct mount *mount = mount_find(0, dev);
 	char tmp[256];
@@ -551,7 +562,7 @@ char* is_mounted(char *block, char *path)
 	return 0;
 }
 
-void mount_check_mount_list(void)
+static void mount_check_mount_list(void)
 {
 	FILE *fp = fopen("/proc/mounts", "r");
 	char tmp[256];
@@ -599,8 +610,8 @@ void mount_check_mount_list(void)
 	fclose(fp);
 }
 
-/* FIXME: we need ore intelligence here */
-int dir_filter2(const struct dirent *a)
+/* FIXME: we need more intelligence here */
+static int dir_filter2(const struct dirent *a)
 {
 	if(/*strcmp(a->d_name, "sda") &&*/(!strncmp(a->d_name, "sd", 2)))
 		return 1;
@@ -610,7 +621,7 @@ int dir_filter2(const struct dirent *a)
 char block[MAX_BLOCK][MAX_BLOCK];
 int blk_cnt = 0;
 
-int check_block(char *b)
+static int check_block(char *b)
 {
 	int i;
 	for(i = 0; i < blk_cnt; i++)
@@ -621,7 +632,7 @@ int check_block(char *b)
 	return 0;
 }
 
-void mount_enum_drives(void)
+static void mount_enum_drives(void)
 {
 	struct dirent **namelist, **namelist2;
 	int i, n = scandir("/sys/block/", &namelist, dir_filter2, dir_sort);
@@ -696,7 +707,7 @@ void mount_enum_drives(void)
 		mount_dev_add(block[i]);
 }
 
-void mount_check_enum(void)
+static void mount_check_enum(void)
 {
 	waitpid(-1, 0, WNOHANG);
 	mount_enum_drives();

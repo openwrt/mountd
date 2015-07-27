@@ -2,7 +2,6 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include <error.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -11,7 +10,7 @@
 
 typedef int (*dfunc)(int);
 
-unsigned short
+static unsigned short
 get_le_short(void *from)
 {
 	unsigned char *p = from;
@@ -19,7 +18,7 @@ get_le_short(void *from)
 		(unsigned short)p[0];
 }
 
-unsigned int get_le_long(void *from)
+static unsigned int get_le_long(void *from)
 {
 	unsigned char *p = from;
 	return ((unsigned int)(p[3]) << 24) +
@@ -28,14 +27,14 @@ unsigned int get_le_long(void *from)
 		(unsigned int)p[0];
 }
 
-unsigned short get_be_short(void *from)
+static unsigned short get_be_short(void *from)
 {
 	unsigned char *p = from;
 	return ((unsigned short)(p[0]) << 8) +
 		(unsigned short)p[1];
 }
 
-unsigned int get_be_long(void *from)
+static unsigned int get_be_long(void *from)
 {
 	unsigned char *p = from;
 	return ((unsigned int)(p[0]) << 24) +
@@ -44,7 +43,7 @@ unsigned int get_be_long(void *from)
 		(unsigned int)p[3];
 }
 
-int get_buffer(int fd, unsigned char *b, int offset, int len)
+static int get_buffer(int fd, unsigned char *b, int offset, int len)
 {
 	if(lseek(fd, offset, SEEK_SET) != offset)
 		return -1;
@@ -54,7 +53,7 @@ int get_buffer(int fd, unsigned char *b, int offset, int len)
 }
 
 #define MBR_BUF_SIZE	512
-int detect_mbr(int fd)
+static int detect_mbr(int fd)
 {
 	int ret = NONE;
 	unsigned char *buffer = (unsigned char*)malloc(MBR_BUF_SIZE);
@@ -69,7 +68,7 @@ out:
 
 #define EFI_BUF_OFFSET	512
 #define EFI_BUF_SIZE	512
-int detect_efi(int fd)
+static int detect_efi(int fd)
 {
 	int ret = NONE;
 	unsigned char *buffer = (unsigned char*)malloc(EFI_BUF_SIZE);
@@ -83,7 +82,7 @@ out:
 }
 
 #define EXT2_BUF_SIZE	1024
-int detect_ext23(int fd)
+static int detect_ext23(int fd)
 {
 	int ret = NONE;
 	unsigned char *buffer = (unsigned char*)malloc(EXT2_BUF_SIZE);
@@ -91,9 +90,14 @@ int detect_ext23(int fd)
 		goto out;
 	if(get_le_short(buffer + 56) == 0xEF53)
 	{
-		if((get_le_long(buffer + 96) & 0x0008)
-			|| (get_le_long(buffer + 92) & 0x0004))
-			ret = EXT3;
+		if(get_le_long(buffer + 92) & 0x0004)
+		{
+			if ((get_le_long(buffer + 96) < 0x0000040)
+				&& (get_le_long(buffer + 100) < 0x0000008))
+				ret = EXT3;
+			else
+				ret = EXT4;
+		}
 		else
 			ret = EXT2;
 	}
@@ -103,7 +107,7 @@ out:
 }
 
 #define FAT_BUF_SIZE	512
-int detect_fat(int fd)
+static int detect_fat(int fd)
 {
 	int ret = NONE;
 	unsigned char *buffer = (unsigned char*)malloc(FAT_BUF_SIZE);
@@ -121,7 +125,7 @@ out:
 
 #define HFSPLUS_VOL_JOURNALED	(1 << 13)
 #define HFSPLUS_BUF_SIZE			512
-int detect_hfsplus(int fd)
+static int detect_hfsplus(int fd)
 {
 	int ret = NONE;
 	unsigned short magic;
@@ -144,7 +148,7 @@ out:
 }
 
 #define NTFS_BUF_SIZE	512
-int detect_ntfs(int fd)
+static int detect_ntfs(int fd)
 {
 	int ret = NONE;
 	unsigned char *buffer = (unsigned char*)malloc(NTFS_BUF_SIZE);
@@ -158,7 +162,7 @@ out:
 }
 
 #define EXTENDED_BUF_SIZE	512
-int detect_extended(int fd)
+static int detect_extended(int fd)
 {
 	int ret = NONE;
 	unsigned char *buffer = (unsigned char*)malloc(MBR_BUF_SIZE);

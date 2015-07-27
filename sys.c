@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include "include/log.h"
+#include "include/sys.h"
 
 int system_printf(char *fmt, ...)
 {

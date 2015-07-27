@@ -34,7 +34,7 @@ void timer_add(timercb_t timercb, int timeout)
 	list_add(&timer->list, &timers);
 }
 
-void timer_proc(int signo)
+static void timer_proc(int signo)
 {
 	struct list_head *p;
 	list_for_each(p, &timers)

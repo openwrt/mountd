@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -13,7 +14,9 @@ int daemonize = 0;
 
 int main(int argc, char *argv[])
 {
-	daemon(0,0);
+	if ((argc < 2) || strcmp(argv[1], "-f"))
+		daemon(0,0);
+
 	daemonize = 1;
 	log_start();
 	log_printf("Starting OpenWrt (auto)mountd V1\n");

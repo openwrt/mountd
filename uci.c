@@ -28,7 +28,7 @@ struct uci_package *p = NULL;
 struct uci_context* uci_init(char *config_file)
 {
 	struct uci_context *ctx = uci_alloc_context();
-	uci_add_history_path(ctx, "/var/state");
+	uci_add_delta_path(ctx, "/var/state");
 	if(uci_load(ctx, config_file, &p) != UCI_OK)
 	{
 		log_printf("/etc/config/%s is missing or corrupt\n", config_file);

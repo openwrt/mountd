@@ -2,6 +2,8 @@
 #include <syslog.h>
 #include <stdarg.h>
 
+#include "include/log.h"
+
 extern int daemonize;
 
 void log_start(void)

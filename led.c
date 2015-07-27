@@ -25,6 +25,7 @@
 #include "include/ucix.h"
 #include "include/log.h"
 #include "include/timer.h"
+#include "include/led.h"
 
 char usbled[16];
 

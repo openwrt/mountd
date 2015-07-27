@@ -19,7 +19,7 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <sys/poll.h>
+#include <poll.h>
 #include <linux/auto_fs4.h>
 
 #include "include/log.h"
@@ -28,6 +28,7 @@
 #include "include/mount.h"
 #include "include/signal.h"
 #include "include/ucix.h"
+#include "include/autofs.h"
 
 int fdin = 0; /* data coming out of the kernel */
 int fdout = 0;/* data going into the kernel */
@@ -36,7 +37,7 @@ dev_t dev;
 time_t uci_timeout;
 char uci_path[32];
 
-void umount_autofs(void)
+static void umount_autofs(void)
 {
 	system_printf("umount %s 2> /dev/null", "/tmp/run/mountd/");
 }
@@ -113,7 +114,7 @@ static int autofs_process_request(const struct autofs_v5_packet *pkt)
 	return 0;
 }
 
-void expire_proc(void)
+static void expire_proc(void)
 {
 	struct autofs_packet_expire pkt;
 	while(ioctl(fdin, AUTOFS_IOC_EXPIRE, &pkt) == 0)
@@ -140,6 +141,7 @@ static int fullread(void *ptr, size_t len)
 
 static int autofs_in(union autofs_v5_packet_union *pkt)
 {
+	int res;
 	struct pollfd fds[1];
 
 	fds[0].fd = fdout;
@@ -147,15 +149,19 @@ static int autofs_in(union autofs_v5_packet_union *pkt)
 
 	while(1)
 	{
-		if(poll(fds, 2, 1000) == -1)
+		res = poll(fds, 1, -1);
+
+		if (res == -1)
 		{
 			if (errno == EINTR)
 				continue;
 			log_printf("failed while trying to read packet from kernel\n");
 			return -1;
 		}
-		if(fds[0].revents & POLLIN)
+		else if ((res > 0) && (fds[0].revents & POLLIN))
+		{
 			return fullread(pkt, sizeof(*pkt));
+		}
 	}
 }
 
@@ -170,14 +176,14 @@ pid_t autofs_safe_fork(void)
 	return pid;
 }
 
-void autofs_cleanup_handler(void)
+static void autofs_cleanup_handler(void)
 {
 	close(fdin);
 	close(fdout);
 	umount_autofs();
 }
 
-void autofs_init(void)
+static void autofs_init(void)
 {
 	int kproto_version;
 	char *p;

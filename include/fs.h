@@ -7,5 +7,6 @@
 #define EFI			7
 #define NTFS		8
 #define EXTENDED	9
+#define EXT4		10
 
 int detect_fs(char *device);

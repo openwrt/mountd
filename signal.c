@@ -5,10 +5,11 @@
 #include "include/log.h"
 #include "include/list.h"
 #include "include/led.h"
+#include "include/signal.h"
 
 void (*crtlc_cb)(void) = 0;
 
-void handlerINT(int s)
+static void handlerINT(int s)
 {
 	log_printf("caught sig int ... cleaning up\n");
 	if(crtlc_cb)
