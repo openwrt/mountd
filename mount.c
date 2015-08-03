@@ -17,6 +17,7 @@
 #include <libgen.h>
 #include <poll.h>
 #include <dirent.h>
+#include <syslog.h>
 
 #include "include/log.h"
 #include "include/list.h"
@@ -310,6 +311,7 @@ static char* mount_get_serial(char *dev)
 	static struct hd_driveid hd;
 	int i;
 	static char *serial;
+	static char disc_id[13];
 	snprintf(tmp, 64, "/dev/%s", dev);
 	disc = open(tmp, O_RDONLY);
 	if(!disc)
@@ -384,7 +386,6 @@ static char* mount_get_serial(char *dev)
 		unsigned int *u = (unsigned int*) uniq;
 		int l = strlen(serial);
 		int i;
-		static char disc_id[13];
 		memset(disc_id, 0, 13);
 		memset(uniq, 0, 6);
 		for(i = 0; i < l; i++)
@@ -395,7 +396,8 @@ static char* mount_get_serial(char *dev)
 		//log_printf("Serial number - %s %s\n", serial, disc_id);
 		return disc_id;
 	}
-	return 0;
+	sprintf(disc_id, "000000000000");
+	return disc_id;
 }
 
 static void mount_dev_add(char *dev)
@@ -417,17 +419,28 @@ static void mount_dev_add(char *dev)
 		char size[64];
 		char sector_size[64];
 		FILE *fp;
+		int offset = 3;
+
 		strcpy(name, dev);
-		name[3] = '\0';
+		if (!strncmp(name, "mmcblk", 6))
+			offset = 7;
+		name[offset] = '\0';
 		s = mount_get_serial(name);
-		if(!s)
+		if(!s) {
 			return;
-		snprintf(tmp, 64, "part%s", &dev[3]);
-		snprintf(node, 64, "Disc-%s", &dev[2]);
-		if(node[5] >= 'a' && node[5] <= 'z')
+		}
+		if (!strncmp(name, "mmcblk", 6)) {
+			snprintf(tmp, 64, "part%s", &dev[8]);
+			snprintf(node, 64, "SD-P%s", &dev[8]);
+
+		} else {
+			snprintf(tmp, 64, "part%s", &dev[3]);
+			snprintf(node, 64, "USB-%s", &dev[2]);
+		}
+		if(node[4] >= 'a' && node[4] <= 'z')
 		{
-			node[5] -= 'a';
-			node[5] += 'A';
+			node[4] -= 'a';
+			node[4] += 'A';
 		}
 		ctx = ucix_init("mountd");
 		p = ucix_get_option(ctx, "mountd", s, tmp);
@@ -613,7 +626,7 @@ static void mount_check_mount_list(void)
 /* FIXME: we need more intelligence here */
 static int dir_filter2(const struct dirent *a)
 {
-	if(/*strcmp(a->d_name, "sda") &&*/(!strncmp(a->d_name, "sd", 2)))
+	if(!strncmp(a->d_name, "mmcblk", 6) || !strncmp(a->d_name, "sd", 2))
 		return 1;
 	return 0;
 }
