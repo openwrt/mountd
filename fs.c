@@ -123,6 +123,20 @@ out:
 	return ret;
 }
 
+static int detect_exfat(int fd)
+{
+	int ret = NONE;
+	unsigned char *buffer = (unsigned char*)malloc(FAT_BUF_SIZE);
+	if(get_buffer(fd, buffer, 0, FAT_BUF_SIZE) != 0)
+		goto out;
+
+	if (!memcmp(buffer + 3, "EXFAT  ", 7))
+		ret = EXFAT;
+out:
+	free(buffer);
+	return ret;
+}
+
 #define HFSPLUS_VOL_JOURNALED	(1 << 13)
 #define HFSPLUS_BUF_SIZE			512
 static int detect_hfsplus(int fd)
@@ -179,6 +193,7 @@ out:
 
 dfunc funcs[] = {
 	detect_ext23,
+	detect_exfat,
 	detect_fat,
 	detect_ntfs,
 	detect_hfsplus,

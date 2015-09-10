@@ -227,6 +227,11 @@ int mount_new(char *path, char *dev)
 	pid = autofs_safe_fork();
 	if(!pid)
 	{
+		if(mount->fs == EXFAT)
+		{
+			log_printf("mount -t exfat -o rw,uid=1000,gid=1000 /dev/%s %s", mount->dev, tmp);
+			ret = system_printf("mount -t exfat -o rw,uid=1000,gid=1000 /dev/%s %s", mount->dev, tmp);
+		}
 		if(mount->fs == FAT)
 		{
 			log_printf("mount -t vfat -o rw,uid=1000,gid=1000 /dev/%s %s", mount->dev, tmp);
