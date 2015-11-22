@@ -194,7 +194,7 @@ static void autofs_init(void)
 	p = ucix_get_option(ctx, "mountd", "mountd", "path");
 	ucix_cleanup(ctx);
 	if(p)
-		snprintf(uci_path, 31, p);
+		snprintf(uci_path, 31, "%s", p);
 	else
 		snprintf(uci_path, 31, "/tmp/mounts/");
 	uci_path[31] = '\0';
