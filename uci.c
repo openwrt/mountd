@@ -54,6 +54,9 @@ char* uci_get_option(struct uci_context *ctx, char *section, char *option)
 	char *value = NULL;
 	struct uci_ptr ptr;
 
+	if (!p)
+		return NULL;
+
 	memset(&ptr, 0, sizeof(ptr));
 	ptr.package = p->e.name;
 	ptr.section = section;
@@ -100,6 +103,9 @@ int uci_get_option_int(struct uci_context *ctx, char *section, char *option, int
 void uci_for_each_section_type(char *type, void (*cb)(char*, void*), void *priv)
 {
 	struct uci_element *e;
+
+	if (!p)
+		return;
 
 	uci_foreach_element(&p->sections, e)
 		if (!strcmp(type, uci_to_section(e)->type))

@@ -18,6 +18,8 @@ static inline int ucix_get_ptr(struct uci_context *ctx, const char *p, const cha
 struct uci_context* ucix_init(const char *config_file)
 {
 	struct uci_context *ctx = uci_alloc_context();
+	if(!ctx)
+		return NULL;
 	uci_add_delta_path(ctx, "/var/state");
 	if(uci_load(ctx, config_file, NULL) != UCI_OK)
 	{
@@ -30,6 +32,8 @@ struct uci_context* ucix_init(const char *config_file)
 struct uci_context* ucix_init_path(const char *path, const char *config_file)
 {
 	struct uci_context *ctx = uci_alloc_context();
+	if(!ctx)
+		return NULL;
 	if(path)
 	{
 		uci_set_savedir(ctx, path);
@@ -44,7 +48,10 @@ struct uci_context* ucix_init_path(const char *path, const char *config_file)
 
 void ucix_cleanup(struct uci_context *ctx)
 {
-	uci_free_context(ctx);
+	if(ctx)
+	{
+		uci_free_context(ctx);
+	}
 }
 
 int ucix_save(struct uci_context *ctx, const char *p)
