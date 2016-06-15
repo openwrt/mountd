@@ -59,6 +59,7 @@ char *fs_names[] = {
 	"",
 	"NTFS",
 	"",
+	"EXFAT",
 	"EXT4"
 };
 
