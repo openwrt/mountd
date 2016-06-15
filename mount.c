@@ -51,16 +51,16 @@ struct mount {
 char *fs_names[] = {
 	"",
 	"",
-	"MBR",
-	"EXT2",
-	"EXT3",
-	"FAT",
-	"HFSPLUS",
+	"mbr",
+	"ext2",
+	"ext3",
+	"fat",
+	"hfsplus",
 	"",
-	"NTFS",
+	"ntfs",
 	"",
-	"EXFAT",
-	"EXT4"
+	"exfat",
+	"ext4"
 };
 
 #define MAX_MOUNTED		32
@@ -229,40 +229,59 @@ int mount_new(char *path, char *dev)
 	pid = autofs_safe_fork();
 	if(!pid)
 	{
+		char *options, *fstype;
 		if(mount->fs == EXFAT)
 		{
-			log_printf("mount -t exfat -o rw,uid=1000,gid=1000 /dev/%s %s", mount->dev, tmp);
-			ret = system_printf("mount -t exfat -o rw,uid=1000,gid=1000 /dev/%s %s", mount->dev, tmp);
+			options = "rw,uid=1000,gid=1000";
+			fstype = "exfat";
 		}
 		if(mount->fs == FAT)
 		{
-			log_printf("mount -t vfat -o rw,uid=1000,gid=1000 /dev/%s %s", mount->dev, tmp);
-			ret = system_printf("mount -t vfat -o rw,uid=1000,gid=1000 /dev/%s %s", mount->dev, tmp);
+			options = "rw,uid=1000,gid=1000";
+			fstype = "vfat";
 		}
 		if(mount->fs == EXT4)
 		{
-			log_printf("mount -t ext4 -o rw,defaults /dev/%s %s", mount->dev, tmp);
-			ret = system_printf("mount -t ext4 -o rw,defaults /dev/%s %s", mount->dev, tmp);
+			options = "rw,defaults";
+			fstype = "ext4";
 		}
 		if(mount->fs == EXT3)
 		{
-			log_printf("mount -t ext3 -o rw,defaults /dev/%s %s", mount->dev, tmp);
-			ret = system_printf("mount -t ext3 -o rw,defaults /dev/%s %s", mount->dev, tmp);
+			options = "rw,defaults";
+			fstype = "ext3";
 		}
 		if(mount->fs == EXT2)
 		{
-			log_printf("mount -t ext2 -o rw,defaults /dev/%s %s", mount->dev, tmp);
-			ret = system_printf("mount -t ext2 -o rw,defaults /dev/%s %s", mount->dev, tmp);
+			options = "rw,defaults";
+			fstype = "ext2";
 		}
 		if(mount->fs == HFSPLUS)
 		{
-			log_printf("mount -t hfsplus -o rw,defaults,uid=1000,gid=1000 /dev/%s %s", mount->dev, tmp);
-			ret = system_printf("mount -t hfsplus -o rw,defaults,uid=1000,gid=1000 /dev/%s %s", mount->dev, tmp);
+			options = "rw,defaults,uid=1000,gid=1000";
+			fstype = "hfsplus";
 		}
 		if(mount->fs == NTFS)
 		{
-			log_printf("ntfs-3g /dev/%s %s -o force", mount->dev, tmp);
-			ret = system_printf("ntfs-3g /dev/%s %s -o force", mount->dev, tmp);
+			options = "force";
+			fstype = "ntfs-3g";
+		}
+		if(mount->fs > MBR && mount->fs <= EXT4)
+		{
+			struct uci_context *ctx;
+			char *uci_options, *uci_fstype;
+			ctx = ucix_init("mountd");
+			if(fs_names[mount->fs])
+			{
+				uci_options = ucix_get_option(ctx, "mountd", fs_names[mount->fs], "options");
+				uci_fstype = ucix_get_option(ctx, "mountd", fs_names[mount->fs], "fstype");
+				if(uci_options)
+					options = uci_options;
+				if(uci_fstype)
+					fstype = uci_fstype;
+				log_printf("mount -t %s -o %s /dev/%s %s", fstype, options, mount->dev, tmp);
+				ret = system_printf("mount -t %s -o %s /dev/%s %s", fstype, options, mount->dev, tmp);
+			}
+			ucix_cleanup(ctx);
 		}
 		exit(WEXITSTATUS(ret));
 	}
