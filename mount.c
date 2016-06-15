@@ -161,6 +161,7 @@ static void mount_add_list(char *name, char *dev, char *serial,
 		snprintf(tmp2, 64, "/tmp/run/mountd/%s", dev);
 		symlink(tmp2, tmp);
 		mount_new("/tmp/run/mountd/", dev);
+		system_printf("ACTION=add DEVICE=%s NAME=%s /sbin/hotplug-call mount", dev, name);
 	}
 }
 
@@ -715,7 +716,7 @@ static void mount_enum_drives(void)
 			log_printf("removing %s\n", q->dev);
 			snprintf(tmp, 64, "%s%s", uci_path, q->name);
 			unlink(tmp);
-			system_printf("/etc/mountd/event remove %s %s", q->dev, q->name);
+			system_printf("ACTION=remove DEVICE=%s NAME=%s /sbin/hotplug-call mount", q->dev, q->name);
 			free(q);
 			mount_dump_uci_state();
 			system_printf("/etc/fonstated/ReloadSamba");
