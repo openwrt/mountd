@@ -153,8 +153,8 @@ static int detect_hfsplus(int fd)
 	{
 		if(!journal)
 			ret = HFSPLUS;
-	//	else
-	//		ret = HFSPLUSJOURNAL;
+		else
+			ret = HFSPLUSJOURNAL;
 	}
 out:
 	free(buffer);

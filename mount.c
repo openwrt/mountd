@@ -60,7 +60,8 @@ char *fs_names[] = {
 	"ntfs",
 	"",
 	"exfat",
-	"ext4"
+	"ext4",
+	"hfsplusjournal"
 };
 
 #define MAX_MOUNTED		32
@@ -100,7 +101,7 @@ static void mount_dump_uci_state(void)
 		ucix_add_option(ctx, mountd, q->serial, "rev", q->rev);
 		snprintf(t, 64, "size%d", atoi(&q->dev[3]));
 		ucix_add_option(ctx, mountd, q->serial, t, q->size);
-		if(q->fs > MBR && q->fs <= EXT4)
+		if(q->fs > MBR && q->fs <= LASTFS)
 		{
 			snprintf(t, 64, "fs%d", atoi(&q->dev[3]));
 			ucix_add_option(ctx, mountd, q->serial, t, fs_names[q->fs]);
@@ -138,7 +139,7 @@ static void mount_add_list(char *name, char *dev, char *serial,
 {
 	struct mount *mount;
 	char tmp[64], tmp2[64];
-	if(fs <= MBR || fs > EXT4)
+	if(fs <= MBR || fs > LASTFS)
 		return;
 	mount  = malloc(sizeof(struct mount));
 	INIT_LIST_HEAD(&mount->list);
@@ -154,7 +155,7 @@ static void mount_add_list(char *name, char *dev, char *serial,
 	mount->mounted = 0;
 	mount->fs = fs;
 	list_add(&mount->list, &mounts);
-	if((!mount->ignore) && (mount->fs > MBR) && (mount->fs <= EXT4))
+	if((!mount->ignore) && (mount->fs > MBR) && (mount->fs <= LASTFS))
 	{
 		log_printf("new mount : %s -> %s (%s)\n", name, dev, fs_names[mount->fs]);
 		snprintf(tmp, 64, "%s%s", uci_path, name);
@@ -260,12 +261,17 @@ int mount_new(char *path, char *dev)
 			options = "rw,defaults,uid=1000,gid=1000";
 			fstype = "hfsplus";
 		}
+		if(mount->fs == HFSPLUSJOURNAL)
+		{
+			options = "ro,defaults,uid=1000,gid=1000";
+			fstype = "hfsplus";
+		}
 		if(mount->fs == NTFS)
 		{
 			options = "force";
 			fstype = "ntfs-3g";
 		}
-		if(mount->fs > MBR && mount->fs <= EXT4)
+		if(mount->fs > MBR && mount->fs <= LASTFS)
 		{
 			struct uci_context *ctx;
 			char *uci_options, *uci_fstype;
