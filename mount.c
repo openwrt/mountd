@@ -693,13 +693,19 @@ static void mount_enum_drives(void)
 				char tmp[64];
 				snprintf(tmp, 64, "/sys/block/%s/", namelist[n]->d_name);
 				m = scandir(tmp, &namelist2, dir_filter2, dir_sort);
-				while(m--)
+				if(m > 0)
 				{
-					strncpy(&block[blk_cnt][0], namelist2[m]->d_name, MAX_BLOCK);
+					while(m--)
+					{
+						strncpy(&block[blk_cnt][0], namelist2[m]->d_name, MAX_BLOCK);
+						blk_cnt++;
+						free(namelist2[m]);
+					}
+					free(namelist2);
+				} else {
+					strncpy(&block[blk_cnt][0], namelist[n]->d_name, MAX_BLOCK);
 					blk_cnt++;
-					free(namelist2[m]);
 				}
-				free(namelist2);
 			}
 			free(namelist[n]);
 		}
