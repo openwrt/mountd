@@ -745,6 +745,8 @@ static void mount_enum_drives(void)
 			p->next->prev = p->prev;
 			p = p->next;
 			log_printf("removing %s\n", q->dev);
+			snprintf(tmp, 64, "%s%s", "/tmp/run/mountd/", q->dev);
+			rmdir(tmp);
 			snprintf(tmp, 64, "%s%s", uci_path, q->name);
 			unlink(tmp);
 			system_printf("ACTION=remove DEVICE=%s NAME=%s /sbin/hotplug-call mount", q->dev, q->name);
