@@ -7,7 +7,7 @@
 #include "include/led.h"
 #include "include/signal.h"
 
-void (*crtlc_cb)(void) = 0;
+static void (*crtlc_cb)(void) = 0;
 
 static void handlerINT(int s)
 {

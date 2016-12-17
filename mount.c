@@ -31,7 +31,7 @@
 
 int mount_new(char *path, char *dev);
 
-struct list_head mounts;
+static struct list_head mounts;
 
 struct mount {
 	struct list_head list;
@@ -48,7 +48,7 @@ struct mount {
 	int fs;
 };
 
-char *fs_names[] = {
+static char *fs_names[] = {
 	"",
 	"",
 	"mbr",
@@ -67,8 +67,8 @@ char *fs_names[] = {
 #define MAX_MOUNTED		32
 #define MAX_MOUNT_NAME	32
 
-char mounted[MAX_MOUNTED][3][MAX_MOUNT_NAME];
-int mounted_count = 0;
+static char mounted[MAX_MOUNTED][3][MAX_MOUNT_NAME];
+static int mounted_count = 0;
 extern char uci_path[32];
 
 static void mount_dump_uci_state(void)
@@ -663,8 +663,8 @@ static int dir_filter2(const struct dirent *a)
 	return 0;
 }
 #define MAX_BLOCK	64
-char block[MAX_BLOCK][MAX_BLOCK];
-int blk_cnt = 0;
+static char block[MAX_BLOCK][MAX_BLOCK];
+static int blk_cnt = 0;
 
 static int check_block(char *b)
 {

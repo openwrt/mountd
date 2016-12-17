@@ -30,11 +30,11 @@
 #include "include/ucix.h"
 #include "include/autofs.h"
 
-int fdin = 0; /* data coming out of the kernel */
-int fdout = 0;/* data going into the kernel */
-dev_t dev;
+static int fdin = 0; /* data coming out of the kernel */
+static int fdout = 0;/* data going into the kernel */
+static dev_t dev;
 
-time_t uci_timeout;
+static time_t uci_timeout;
 char uci_path[32];
 
 static void umount_autofs(void)

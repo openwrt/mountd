@@ -14,7 +14,7 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
  *
  *   Provided by fon.com
- *   Copyright (C) 2009 John Crispin <blogic@openwrt.org> 
+ *   Copyright (C) 2009 John Crispin <blogic@openwrt.org>
  */
 
 
@@ -27,7 +27,7 @@
 #include "include/timer.h"
 #include "include/led.h"
 
-char usbled[16];
+static char usbled[16];
 
 void led_ping(void)
 {

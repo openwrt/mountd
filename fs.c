@@ -191,7 +191,7 @@ out:
 	return ret;
 }
 
-dfunc funcs[] = {
+static dfunc funcs[] = {
 	detect_ext23,
 	detect_exfat,
 	detect_fat,

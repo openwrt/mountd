@@ -9,7 +9,7 @@
 
 /* when using this file, alarm() is used */
 
-struct list_head timers;
+static struct list_head timers;
 
 struct timer {
 	struct list_head list;
