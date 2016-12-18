@@ -177,7 +177,7 @@ static int mount_check_disc(char *disc)
 		fclose(fp);
 		return avail;
 	}
-	while((fgets(tmp, 256, fp) > 0) && (avail == -1))
+	while((fgets(tmp, 256, fp) != NULL) && (avail == -1))
 	{
 		char *t;
 		char tmp2[32];
@@ -389,7 +389,7 @@ static char* mount_get_serial(char *dev)
 						fp = fopen(tmp2, "r");
 						if(fp)
 						{
-							while(fgets(tmp2, 64, fp) > 0)
+							while(fgets(tmp2, 64, fp) != NULL)
 							{
 								serial = strstr(tmp2, "Serial Number:");
 								if(serial)
@@ -619,7 +619,7 @@ static void mount_check_mount_list(void)
 		return;
 	}
 	mounted_count = 0;
-	while(fgets(tmp, 256, fp) > 0)
+	while(fgets(tmp, 256, fp) != NULL)
 	{
 		char *t, *t2;
 		t = strstr(tmp, " ");
