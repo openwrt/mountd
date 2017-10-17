@@ -174,7 +174,6 @@ static int mount_check_disc(char *disc)
 	if(!fp)
 	{
 		log_printf("error reading /proc/mounts");
-		fclose(fp);
 		return avail;
 	}
 	while((fgets(tmp, 256, fp) != NULL) && (avail == -1))
@@ -615,7 +614,6 @@ static void mount_check_mount_list(void)
 	if(!fp)
 	{
 		log_printf("error reading /proc/mounts");
-		fclose(fp);
 		return;
 	}
 	mounted_count = 0;
