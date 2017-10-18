@@ -7,21 +7,10 @@
 #include "include/led.h"
 #include "include/signal.h"
 
-static void (*crtlc_cb)(void) = 0;
-
-static void handlerINT(int s)
-{
-	log_printf("caught sig int ... cleaning up\n");
-	if(crtlc_cb)
-		crtlc_cb();
-	exit(0);
-}
-
-void signal_init(void (*_crtlc_cb)(void))
+void signal_init(void (*_crtlc_cb)(int))
 {
 	struct sigaction s;
-	crtlc_cb = _crtlc_cb;
-	s.sa_handler = handlerINT;
+	s.sa_handler = _crtlc_cb;
 	s.sa_flags = 0;
-	sigaction(SIGINT, &s, NULL);
+	sigaction(SIGTERM, &s, NULL);
 }

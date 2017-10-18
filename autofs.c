@@ -32,6 +32,7 @@
 
 static int fdin = 0; /* data coming out of the kernel */
 static int fdout = 0;/* data going into the kernel */
+static bool term = false;
 static dev_t dev;
 
 static time_t uci_timeout;
@@ -147,7 +148,7 @@ static int autofs_in(union autofs_v5_packet_union *pkt)
 	fds[0].fd = fdout;
 	fds[0].events = POLLIN;
 
-	while(1)
+	while(!term)
 	{
 		res = poll(fds, 1, -1);
 
@@ -163,6 +164,7 @@ static int autofs_in(union autofs_v5_packet_union *pkt)
 			return fullread(pkt, sizeof(*pkt));
 		}
 	}
+	return 1;
 }
 
 pid_t autofs_safe_fork(void)
@@ -171,16 +173,21 @@ pid_t autofs_safe_fork(void)
 	if(!pid)
 	{
 		close(fdin);
-	    close(fdout);
+		close(fdout);
 	}
 	return pid;
 }
 
-static void autofs_cleanup_handler(void)
+static void autofs_cleanup(void)
 {
 	close(fdin);
 	close(fdout);
 	umount_autofs();
+}
+
+static void autofs_end_handler(int sig)
+{
+	term = true;
 }
 
 static void autofs_init(void)
@@ -188,7 +195,7 @@ static void autofs_init(void)
 	int kproto_version;
 	char *p;
 	struct uci_context *ctx;
-	signal_init(autofs_cleanup_handler);
+	signal_init(autofs_end_handler);
 	ctx = ucix_init("mountd");
 	uci_timeout = ucix_get_option_int(ctx, "mountd", "mountd", "timeout", 60);
 	p = ucix_get_option(ctx, "mountd", "mountd", "path");
@@ -226,7 +233,7 @@ int autofs_loop(void)
 {
 	chdir("/");
 	autofs_init();
-	while(1)
+	while(!term)
 	{
 		union autofs_v5_packet_union pkt;
 		if(autofs_in(&pkt))
@@ -240,7 +247,7 @@ int autofs_loop(void)
 			log_printf("unknown packet type %d\n", pkt.hdr.type);
 		poll(0, 0, 200);
 	}
-	umount_autofs();
+	autofs_cleanup();
 	log_printf("... quitting\n");
 	closelog();
 	return 0;
