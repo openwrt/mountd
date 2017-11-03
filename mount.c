@@ -139,8 +139,7 @@ static void mount_add_list(char *name, char *dev, char *serial,
 {
 	struct mount *mount;
 	char tmp[64], tmp2[64];
-	if(fs <= MBR || fs > LASTFS)
-		return;
+
 	mount  = malloc(sizeof(struct mount));
 	INIT_LIST_HEAD(&mount->list);
 	strncpy(mount->vendor, vendor, 64);
@@ -451,6 +450,7 @@ static void mount_dev_add(char *dev)
 		char sector_size[64];
 		FILE *fp;
 		int offset = 3;
+		int fs;
 
 		strcpy(name, dev);
 		if (!strncmp(name, "mmcblk", 6))
@@ -556,7 +556,11 @@ static void mount_dev_add(char *dev)
 			fclose(fp);
 		}
 		snprintf(tmp, 64, "/dev/%s", dev);
-		mount_add_list(node, dev, s, vendor, model, rev, ignore, size, sector_size, detect_fs(tmp));
+		fs = detect_fs(tmp);
+		if (fs <= MBR || fs > LASTFS) {
+			ignore = 1;
+		}
+		mount_add_list(node, dev, s, vendor, model, rev, ignore, size, sector_size, fs);
 		mount_dump_uci_state();
 	}
 }
