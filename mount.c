@@ -155,7 +155,7 @@ static void mount_add_list(char *name, char *dev, char *serial,
 	mount->mounted = 0;
 	mount->fs = fs;
 	list_add(&mount->list, &mounts);
-	if((!mount->ignore) && (mount->fs > MBR) && (mount->fs <= LASTFS))
+	if (!mount->ignore)
 	{
 		log_printf("new mount : %s -> %s (%s)\n", name, dev, fs_names[mount->fs]);
 		snprintf(tmp, 64, "%s%s", uci_path, name);
