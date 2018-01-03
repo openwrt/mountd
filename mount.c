@@ -160,8 +160,8 @@ static void mount_add_list(char *name, char *dev, char *serial,
 		snprintf(tmp, 64, "%s%s", uci_path, name);
 		snprintf(tmp2, 64, "/tmp/run/mountd/%s", dev);
 		symlink(tmp2, tmp);
-		mount_new("/tmp/run/mountd/", dev);
-		system_printf("ACTION=add DEVICE=%s NAME=%s /sbin/hotplug-call mount", dev, name);
+		if (!mount_new("/tmp/run/mountd/", dev))
+			system_printf("ACTION=add DEVICE=%s NAME=%s /sbin/hotplug-call mount", dev, name);
 	}
 }
 
