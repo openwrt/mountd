@@ -292,8 +292,10 @@ int mount_new(char *path, char *dev)
 	pid = waitpid(pid, &ret, 0);
 	ret = WEXITSTATUS(ret);
 	log_printf("----------> mount ret = %d\n", ret);
-	if(ret && (ret != 0xff))
+	if (ret && ret != 0xff) {
+		rmdir(tmp);
 		return -1;
+	}
 	if(mount_wait_for_disc(mount->dev) == 0)
 	{
 		mount->mounted = 1;
