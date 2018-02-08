@@ -612,7 +612,7 @@ char* is_mounted(char *block, char *path)
 	return 0;
 }
 
-static void mount_check_mount_list(void)
+static void mount_update_mount_list(void)
 {
 	FILE *fp = fopen("/proc/mounts", "r");
 	char tmp[256];
@@ -779,7 +779,7 @@ static void mount_check_enum(void)
 void mount_init(void)
 {
 	INIT_LIST_HEAD(&mounts);
-	timer_add(mount_check_mount_list, 2);
+	timer_add(mount_update_mount_list, 2);
 	timer_add(mount_check_enum, 1);
-	mount_check_mount_list();
+	mount_update_mount_list();
 }
