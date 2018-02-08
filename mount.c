@@ -626,6 +626,12 @@ static void mount_check_mount_list(void)
 	while(fgets(tmp, 256, fp) != NULL)
 	{
 		char *t, *t2;
+
+		if (mounted_count + 1 > MAX_MOUNTED) {
+			log_printf("found more than %d mounts \n", MAX_MOUNTED);
+			break;
+		}
+
 		t = strstr(tmp, " ");
 		if(t)
 		{
@@ -651,10 +657,8 @@ static void mount_check_mount_list(void)
 			mounted[mounted_count][0],
 			mounted[mounted_count][1],
 			mounted[mounted_count][2]);*/
-		if(mounted_count < MAX_MOUNTED - 1)
-			mounted_count++;
-		else
-			log_printf("found more than %d mounts \n", MAX_MOUNTED);
+
+		mounted_count++;
 	}
 	fclose(fp);
 }
