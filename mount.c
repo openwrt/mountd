@@ -567,23 +567,19 @@ static void mount_dev_add(char *dev)
 	}
 }
 
-static void mount_dev_del(char *dev)
+static void mount_dev_del(struct mount *mount)
 {
-	struct mount *mount = mount_find(0, dev);
 	char tmp[256];
-	if(mount)
-	{
-		if(mount->mounted)
-		{
-			snprintf(tmp, 256, "%s%s", "/tmp/run/mountd/", mount->name);
-			log_printf("%s has dissappeared ... unmounting\n", tmp);
-			snprintf(tmp, 256, "%s%s", "/tmp/run/mountd/", mount->dev);
-			system_printf("/bin/umount %s", tmp);
-			rmdir(tmp);
-			snprintf(tmp, 64, "%s%s", uci_path, mount->name);
-			unlink(tmp);
-			mount_dump_uci_state();
-		}
+
+	if (mount->mounted) {
+		snprintf(tmp, 256, "%s%s", "/tmp/run/mountd/", mount->name);
+		log_printf("%s has dissappeared ... unmounting\n", tmp);
+		snprintf(tmp, 256, "%s%s", "/tmp/run/mountd/", mount->dev);
+		system_printf("/bin/umount %s", tmp);
+		rmdir(tmp);
+		snprintf(tmp, 64, "%s%s", uci_path, mount->name);
+		unlink(tmp);
+		mount_dump_uci_state();
 	}
 }
 
@@ -748,7 +744,7 @@ static void mount_enum_drives(void)
 		}
 		if(!check_block(q->dev)||del)
 		{
-			mount_dev_del(q->dev);
+			mount_dev_del(q);
 			p->prev->next = p->next;
 			p->next->prev = p->prev;
 			p = p->next;
