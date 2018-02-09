@@ -38,11 +38,13 @@ static struct list_head mounts;
  *
  * @STATUS_UNMOUNTED: currently not mounted
  * @STATUS_MOUNTED: mounted & ready for usage
+ * @STATUS_EXPIRED: mount expired & *temporary* unmounted
  * @STATUS_IGNORE: entry should be ignored and never mounted
  */
 enum status {
 	STATUS_UNMOUNTED = 0,
 	STATUS_MOUNTED,
+	STATUS_EXPIRED,
 	STATUS_IGNORE,
 };
 
@@ -330,7 +332,7 @@ int mount_remove(char *path, char *dev)
 	rmdir(tmp);
 	mount = mount_find(0, dev);
 	if(mount)
-		mount->status = STATUS_UNMOUNTED;
+		mount->status = STATUS_EXPIRED;
 	log_printf("finished unmounting\n");
 	mount_dump_uci_state();
 	return 0;
@@ -762,7 +764,7 @@ static void mount_enum_drives(void)
 			p->next->prev = p->prev;
 			p = p->next;
 			log_printf("removing %s\n", q->dev);
-			if (q->status == STATUS_MOUNTED) {
+			if (q->status == STATUS_MOUNTED || q->status == STATUS_EXPIRED) {
 				snprintf(tmp, 64, "%s%s", "/tmp/run/mountd/", q->dev);
 				rmdir(tmp);
 				snprintf(tmp, 64, "%s%s", uci_path, q->name);
