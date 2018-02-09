@@ -33,6 +33,19 @@ int mount_new(char *path, char *dev);
 
 static struct list_head mounts;
 
+/**
+ * enum status - status of mount entry
+ *
+ * @STATUS_UNMOUNTED: currently not mounted
+ * @STATUS_MOUNTED: mounted & ready for usage
+ * @STATUS_IGNORE: entry should be ignored and never mounted
+ */
+enum status {
+	STATUS_UNMOUNTED = 0,
+	STATUS_MOUNTED,
+	STATUS_IGNORE,
+};
+
 struct mount {
 	struct list_head list;
 	char name[64];
@@ -41,8 +54,7 @@ struct mount {
 	char vendor[64];
 	char model[64];
 	char rev[64];
-	int mounted;
-	int ignore;
+	enum status status;
 	char size[64];
 	char sector_size[64];
 	int fs;
@@ -95,7 +107,7 @@ static void mount_dump_uci_state(void)
 		ucix_add_option(ctx, mountd, q->serial, "disc", t);
 		ucix_add_option(ctx, mountd, q->serial, "sector_size", q->sector_size);
 		snprintf(t, 64, "part%dmounted", atoi(&q->dev[3]));
-		ucix_add_option(ctx, mountd, q->serial, t, (q->mounted)?("1"):("0"));
+		ucix_add_option(ctx, mountd, q->serial, t, q->status == STATUS_MOUNTED ? "1" : "0");
 		ucix_add_option(ctx, mountd, q->serial, "vendor", q->vendor);
 		ucix_add_option(ctx, mountd, q->serial, "model", q->model);
 		ucix_add_option(ctx, mountd, q->serial, "rev", q->rev);
@@ -106,9 +118,9 @@ static void mount_dump_uci_state(void)
 			snprintf(t, 64, "fs%d", atoi(&q->dev[3]));
 			ucix_add_option(ctx, mountd, q->serial, t, fs_names[q->fs]);
 		}
-		if(q->mounted)
+		if (q->status == STATUS_MOUNTED)
 			mounted++;
-		if((!q->ignore) && q->size && q->sector_size)
+		if ((q->status != STATUS_IGNORE) && q->size && q->sector_size)
 			size = size + (((unsigned long long int)atoi(q->size)) * ((unsigned long long int)atoi(q->sector_size)));
 	}
 	ucix_add_option_int(ctx, mountd, mountd, "mounted", mounted);
@@ -150,12 +162,13 @@ static void mount_add_list(char *name, char *dev, char *serial,
 	strncpy(mount->serial, serial, 64);
 	strncpy(mount->size, size, 64);
 	strncpy(mount->sector_size, sector_size, 64);
-	mount->ignore = ignore;
-	mount->mounted = 0;
+	mount->status = STATUS_UNMOUNTED;
 	mount->fs = fs;
 	list_add(&mount->list, &mounts);
-	if (!mount->ignore)
-	{
+
+	if (ignore) {
+		mount->status = STATUS_IGNORE;
+	} else {
 		log_printf("new mount : %s -> %s (%s)\n", name, dev, fs_names[mount->fs]);
 		snprintf(tmp, 64, "%s%s", uci_path, name);
 		snprintf(tmp2, 64, "/tmp/run/mountd/%s", dev);
@@ -219,7 +232,7 @@ int mount_new(char *path, char *dev)
 		log_printf("request for invalid path %s%s\n", path, dev);
 		return -1;
 	}
-	if(mount->ignore || mount->mounted || mount->fs == EXTENDED)
+	if (mount->status == STATUS_IGNORE || mount->status == STATUS_MOUNTED || mount->fs == EXTENDED)
 		return -1;
 	snprintf(tmp, 256, "%s%s", path, mount->dev);
 	log_printf("mounting %s\n", tmp);
@@ -298,7 +311,7 @@ int mount_new(char *path, char *dev)
 	}
 	if(mount_wait_for_disc(mount->dev) == 0)
 	{
-		mount->mounted = 1;
+		mount->status = STATUS_MOUNTED;
 		mount_dump_uci_state();
 	} else return -1;
 	return 0;
@@ -317,7 +330,7 @@ int mount_remove(char *path, char *dev)
 	rmdir(tmp);
 	mount = mount_find(0, dev);
 	if(mount)
-		mount->mounted = 0;
+		mount->status = STATUS_UNMOUNTED;
 	log_printf("finished unmounting\n");
 	mount_dump_uci_state();
 	return 0;
@@ -571,7 +584,7 @@ static void mount_dev_del(struct mount *mount)
 {
 	char tmp[256];
 
-	if (mount->mounted) {
+	if (mount->status == STATUS_MOUNTED) {
 		snprintf(tmp, 256, "%s%s", "/tmp/run/mountd/", mount->name);
 		log_printf("%s has dissappeared ... unmounting\n", tmp);
 		snprintf(tmp, 256, "%s%s", "/tmp/run/mountd/", mount->dev);
@@ -589,7 +602,7 @@ void mount_dump_list(void)
 	list_for_each(p, &mounts)
 	{
 		struct mount *q = container_of(p, struct mount, list);
-		log_printf("* %s %s %d\n", q->name, q->dev, q->mounted);
+		log_printf("* %s %s %d\n", q->name, q->dev, q->status == STATUS_MOUNTED);
 	}
 }
 
@@ -727,11 +740,11 @@ static void mount_enum_drives(void)
 		ctx = ucix_init("mountd");
 		t = ucix_get_option(ctx, "mountd", q->serial, tmp);
 		ucix_cleanup(ctx);
-		if(t && !q->mounted)
+		if (t && q->status != STATUS_MOUNTED)
 		{
 			if(!strcmp(t, "0"))
 			{
-				if(!q->ignore)
+				if (q->status != STATUS_IGNORE)
 					del = 1;
 			} else if(!strcmp(t, "1"))
 			{
@@ -749,7 +762,7 @@ static void mount_enum_drives(void)
 			p->next->prev = p->prev;
 			p = p->next;
 			log_printf("removing %s\n", q->dev);
-			if (q->mounted) {
+			if (q->status == STATUS_MOUNTED) {
 				snprintf(tmp, 64, "%s%s", "/tmp/run/mountd/", q->dev);
 				rmdir(tmp);
 				snprintf(tmp, 64, "%s%s", uci_path, q->name);
