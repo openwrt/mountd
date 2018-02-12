@@ -591,8 +591,6 @@ static void mount_dev_del(struct mount *mount)
 		log_printf("device %s has disappeared ... unmounting %s\n", mount->dev, tmp);
 		system_printf("/bin/umount %s", tmp);
 		rmdir(tmp);
-		snprintf(tmp, 64, "%s%s", uci_path, mount->name);
-		unlink(tmp);
 		mount_dump_uci_state();
 	}
 }
