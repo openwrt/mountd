@@ -760,11 +760,9 @@ static void mount_enum_drives(void)
 			p->prev->next = p->next;
 			p->next->prev = p->prev;
 			p = p->next;
-			log_printf("removing %s\n", q->dev);
 			if (q->status == STATUS_MOUNTED || q->status == STATUS_EXPIRED) {
-				snprintf(tmp, 64, "%s%s", "/tmp/run/mountd/", q->dev);
-				rmdir(tmp);
 				snprintf(tmp, 64, "%s%s", uci_path, q->name);
+				log_printf("unlinking %s\n", tmp);
 				unlink(tmp);
 				system_printf("ACTION=remove DEVICE=%s NAME=%s /sbin/hotplug-call mount", q->dev, q->name);
 			}
