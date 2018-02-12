@@ -325,7 +325,7 @@ int mount_remove(char *path, char *dev)
 	char tmp[256];
 	int ret;
 	snprintf(tmp, 256, "%s%s", path, dev);
-	log_printf("%s has expired... unmounting\n", tmp);
+	log_printf("device %s has expired... unmounting %s\n", dev, tmp);
 	ret = system_printf("/bin/umount %s", tmp);
 	if(ret != 0)
 		return 0;
@@ -587,9 +587,8 @@ static void mount_dev_del(struct mount *mount)
 	char tmp[256];
 
 	if (mount->status == STATUS_MOUNTED) {
-		snprintf(tmp, 256, "%s%s", "/tmp/run/mountd/", mount->name);
-		log_printf("%s has dissappeared ... unmounting\n", tmp);
 		snprintf(tmp, 256, "%s%s", "/tmp/run/mountd/", mount->dev);
+		log_printf("device %s has disappeared ... unmounting %s\n", mount->dev, tmp);
 		system_printf("/bin/umount %s", tmp);
 		rmdir(tmp);
 		snprintf(tmp, 64, "%s%s", uci_path, mount->name);
