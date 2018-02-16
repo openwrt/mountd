@@ -152,7 +152,7 @@ static void mount_add_list(char *name, char *dev, char *serial,
 	char *vendor, char *model, char *rev, int ignore, char *size, char *sector_size, int fs)
 {
 	struct mount *mount;
-	char tmp[64], tmp2[64];
+	char dev_path[64], dev_link[64];
 
 	mount  = malloc(sizeof(struct mount));
 	INIT_LIST_HEAD(&mount->list);
@@ -172,9 +172,9 @@ static void mount_add_list(char *name, char *dev, char *serial,
 		mount->status = STATUS_IGNORE;
 	} else {
 		log_printf("new mount : %s -> %s (%s)\n", name, dev, fs_names[mount->fs]);
-		snprintf(tmp, 64, "%s%s", uci_path, name);
-		snprintf(tmp2, 64, "/tmp/run/mountd/%s", dev);
-		symlink(tmp2, tmp);
+		snprintf(dev_link, sizeof(dev_link), "%s%s", uci_path, name);
+		snprintf(dev_path, sizeof(dev_path), "%s%s", "/tmp/run/mountd/", dev);
+		symlink(dev_path, dev_link);
 		if (!mount_new("/tmp/run/mountd/", dev))
 			system_printf("ACTION=add DEVICE=%s NAME=%s /sbin/hotplug-call mount", dev, name);
 	}
