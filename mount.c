@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -11,6 +12,7 @@
 #include <dirent.h>
 #include <sys/wait.h>
 #include <sys/inotify.h>
+#include <sys/mount.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <glob.h>
@@ -152,7 +154,7 @@ static void mount_add_list(char *name, char *dev, char *serial,
 	char *vendor, char *model, char *rev, int ignore, char *size, char *sector_size, int fs)
 {
 	struct mount *mount;
-	char dev_path[64], dev_link[64];
+	char dev_path[64], dev_link[64], tmp[64];
 
 	mount  = malloc(sizeof(struct mount));
 	INIT_LIST_HEAD(&mount->list);
@@ -171,10 +173,20 @@ static void mount_add_list(char *name, char *dev, char *serial,
 	if (ignore) {
 		mount->status = STATUS_IGNORE;
 	} else {
+		struct stat st;
+
 		log_printf("new mount : %s -> %s (%s)\n", name, dev, fs_names[mount->fs]);
+
 		snprintf(dev_link, sizeof(dev_link), "%s%s", uci_path, name);
 		snprintf(dev_path, sizeof(dev_path), "%s%s", "/tmp/run/mountd/", dev);
-		symlink(dev_path, dev_link);
+		/* If link aleady exists - replace it */
+		if (lstat(dev_link, &st) ==  0 && S_ISLNK(st.st_mode)) {
+			snprintf(tmp, sizeof(tmp), "%s%s", uci_path, "tmp");
+			symlink(dev_path, tmp);
+			rename(tmp, dev_link);
+		} else {
+			symlink(dev_path, dev_link);
+		}
 		if (!mount_new("/tmp/run/mountd/", dev))
 			system_printf("ACTION=add DEVICE=%s NAME=%s /sbin/hotplug-call mount", dev, name);
 	}
@@ -582,17 +594,22 @@ static void mount_dev_add(char *dev)
 	}
 }
 
-static void mount_dev_del(struct mount *mount)
+static int mount_dev_del(struct mount *mount)
 {
 	char tmp[256];
+	int err = 0;
 
 	if (mount->status == STATUS_MOUNTED) {
 		snprintf(tmp, 256, "%s%s", "/tmp/run/mountd/", mount->dev);
 		log_printf("device %s has disappeared ... unmounting %s\n", mount->dev, tmp);
-		system_printf("/bin/umount %s", tmp);
+		if (umount(tmp)) {
+			err = -errno;
+		}
 		rmdir(tmp);
 		mount_dump_uci_state();
 	}
+
+	return err;
 }
 
 void mount_dump_list(void)
@@ -756,11 +773,24 @@ static void mount_enum_drives(void)
 		}
 		if(!check_block(q->dev)||del)
 		{
-			mount_dev_del(q);
+			int err;
+
+			err = mount_dev_del(q);
 			if (q->status == STATUS_MOUNTED || q->status == STATUS_EXPIRED) {
-				snprintf(tmp, 64, "%s%s", uci_path, q->name);
-				log_printf("unlinking %s\n", tmp);
-				unlink(tmp);
+				char dev_link[64];
+
+				snprintf(dev_link, sizeof(dev_link), "%s%s", uci_path, q->name);
+				if (err == -EBUSY) {
+					/* Create "tmp" symlink to non-existing path */
+					snprintf(tmp, sizeof(tmp), "%s%s", uci_path, "tmp");
+					symlink("## DEVICE MISSING ##", tmp);
+
+					/* Replace old symlink with the not working one */
+					rename(tmp, dev_link);
+				} else {
+					log_printf("unlinking %s\n", dev_link);
+					unlink(dev_link);
+				}
 				system_printf("ACTION=remove DEVICE=%s NAME=%s /sbin/hotplug-call mount", q->dev, q->name);
 			}
 
