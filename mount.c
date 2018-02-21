@@ -604,6 +604,7 @@ static int mount_dev_del(struct mount *mount)
 		log_printf("device %s has disappeared ... unmounting %s\n", mount->dev, tmp);
 		if (umount(tmp)) {
 			err = -errno;
+			umount2(tmp, MNT_DETACH);
 		}
 		rmdir(tmp);
 		mount_dump_uci_state();
