@@ -774,11 +774,13 @@ static void mount_enum_drives(void)
 		}
 		if(!check_block(q->dev)||del)
 		{
-			int err;
-
-			err = mount_dev_del(q);
 			if (q->status == STATUS_MOUNTED || q->status == STATUS_EXPIRED) {
 				char dev_link[64];
+				int err;
+
+				system_printf("ACTION=remove DEVICE=%s NAME=%s /sbin/hotplug-call mount", q->dev, q->name);
+
+				err = mount_dev_del(q);
 
 				snprintf(dev_link, sizeof(dev_link), "%s%s", uci_path, q->name);
 				if (err == -EBUSY) {
@@ -792,7 +794,6 @@ static void mount_enum_drives(void)
 					log_printf("unlinking %s\n", dev_link);
 					unlink(dev_link);
 				}
-				system_printf("ACTION=remove DEVICE=%s NAME=%s /sbin/hotplug-call mount", q->dev, q->name);
 			}
 
 			p->prev->next = p->next;
