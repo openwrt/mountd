@@ -13,12 +13,9 @@
 #include <sys/wait.h>
 #include <sys/inotify.h>
 #include <sys/mount.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <glob.h>
 #include <libgen.h>
 #include <poll.h>
-#include <dirent.h>
 #include <syslog.h>
 
 #include "include/log.h"
