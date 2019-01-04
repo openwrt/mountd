@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
 
 PROJECT(mountd C)
-ADD_DEFINITIONS(-Os -ggdb -Wall -Werror --std=gnu99 -Wmissing-declarations)
+ADD_DEFINITIONS(-Os -ggdb -Wall -Werror --std=gnu99 -Wmissing-declarations -Wno-format-truncation)
 
 FIND_PATH(uci_include_dir uci.h)
 INCLUDE_DIRECTORIES(${uci_include_dir})
