@@ -394,7 +394,7 @@ static char* mount_get_serial(char *dev)
 				{
 					int id;
 					struct stat buf;
-					char tmp3[255];
+					char tmp3[strlen(namelist[n]->d_name) + strlen(dev) + 31];
 					int ret;
 					*t = 0;
 					id = atoi(namelist[n]->d_name);
