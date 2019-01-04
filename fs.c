@@ -149,7 +149,7 @@ static int detect_hfsplus(int fd)
 		goto out;
 	magic = get_be_short(buffer);
 	journal = get_be_long(buffer + 4) & HFSPLUS_VOL_JOURNALED;
-	if(magic == 0x482B)
+	if(magic == 0x482B || magic == 0x4858)
 	{
 		if(!journal)
 			ret = HFSPLUS;
