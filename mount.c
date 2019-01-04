@@ -394,11 +394,12 @@ static char* mount_get_serial(char *dev)
 				{
 					int id;
 					struct stat buf;
-					char tmp3[64];
+					char tmp3[255];
 					int ret;
 					*t = 0;
 					id = atoi(namelist[n]->d_name);
 					*t = ':';
+
 					sprintf(tmp3, "/sys/bus/scsi/devices/%s/block:%s/", namelist[n]->d_name, dev);
 					ret = stat(tmp3, &buf);
 					if(ret)
